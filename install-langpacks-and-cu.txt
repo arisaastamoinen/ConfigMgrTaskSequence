@@ -1,0 +1,69 @@
+setlocal 
+set thisver=1909
+set imgxprog="C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\x86\DISM\imagex.exe"
+
+del "*.lo_" "install_*.wim"
+ren "*.log" "*.lo_"
+
+REM Install.wim is the original from MS, containing all SKUs
+REM DISM.exe /Get-WimInfo /wimfile:install.wim
+REM Export Enterprise SKU
+dism /export-image /sourceimagefile:install.wim /sourceindex:3 /destinationimagefile:install_tmp.wim
+
+mkdir mount
+mkdir mount\windows
+
+dism /mount-image /imagefile:install_tmp.wim /index:1 /mountdir:mount\windows
+
+REM Finnish
+dism /add-package /image:mount\windows /packagepath="..\Win10_%thisver%_Langpacks\x64\Microsoft-Windows-Client-Language-Pack_x64_fi-fi.cab"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.Basic~~~fi-FI~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.OCR~~~fi-FI~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.TextToSpeech~~~fi-FI~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.Handwriting~~~fi-FI~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+
+REM Swedish
+dism /add-package /image:mount\windows /packagepath="..\Win10_%thisver%_Langpacks\x64\Microsoft-Windows-Client-Language-Pack_x64_sv-se.cab"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.Basic~~~sv-se~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.OCR~~~sv-se~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.TextToSpeech~~~sv-se~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.Handwriting~~~sv-se~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+
+REM Russian
+dism /add-package /image:mount\windows /packagepath="..\Win10_%thisver%_Langpacks\x64\Microsoft-Windows-Client-Language-Pack_x64_ru-ru.cab"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.Basic~~~ru-ru~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.OCR~~~ru-ru~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.TextToSpeech~~~ru-ru~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+dism /image:mount\windows /Add-Capability /CapabilityName:Language.Handwriting~~~ru-ru~0.0.1.0 /Source:"..\Win10_%thisver%_FeaturesOnDemand"
+
+Dism /image:mount\windows /Get-Capabilities 
+
+Dism /image:mount\windows /Set-SKUIntlDefaults:fi-fi
+
+Dism /Image:mount\windows /get-intl
+
+REM Generate lang.ini for In-Place upgrade source
+Dism /Image:mount\windows /gen-langini /distribution:DVD
+
+REM Latest Servicing Stack Update - SSU
+for %%i in (..\Win10_%thisver%_Latest_Servicing_Stack_Update\*.msu) do dism /add-package /image:mount\windows /packagepath="%%i" /logpath:"%%~ni.log"
+
+REM Latest CU 
+for %%i in (..\Win10_%thisver%_Latest_Cumulative_Update\*.msu) do dism /add-package /image:mount\windows /packagepath="%%i" /logpath:"%%~ni.log"
+
+REM Latest Flash
+for %%i in (..\Win10_%thisver%_Latest_Flash_Update\*.msu) do dism /add-package /image:mount\windows /packagepath="%%i" /logpath:"%%~ni.log"
+
+Dism /Unmount-Image /MountDir:mount\windows /Commit
+
+rmdir mount\windows
+rmdir mount
+
+%imgxprog% /info install_tmp.wim 1 "Windows 10 Enterprise with Language Packs" "Windows 10 Enterprise %thisver% x64 with Language Packs fi-fi, ru-ru, sv-se. Default language set to Finnish. Compiled at %date:~9,4%-%date:~6,2%-%date:~3,2%"
+
+REM New install image
+dism /export-image /sourceimagefile:install_tmp.wim /sourceindex:1 /destinationimagefile:install_with_langpacks.wim
+
+REM Update In-Place source
+copy /y install_with_langpacks.wim DVD\sources\install.wim
+
