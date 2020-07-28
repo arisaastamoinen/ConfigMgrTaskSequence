@@ -1,0 +1,10 @@
+﻿<?xml version="1.0"?> 
+ <dpInst> 
+    <suppressWizard/> 
+    <quietInstallStrict/> 
+    <suppressAddRemovePrograms/>
+	<search> 
+	  <subDirectory>*</subDirectory> 
+	</search> 
+ </dpInst> 
+
